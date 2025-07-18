@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Travel Weather App</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main>
+    <header>
+      <h1>🌍 Travel Weather Planner</h1>
+    </header>
+
+    <form id="route-form" aria-label="Route planner form">
+      <label for="origin">From:</label>
+      <input type="text" id="origin" name="origin" placeholder="Enter starting location" required />
+
+      <label for="destination">To:</label>
+      <input type="text" id="destination" name="destination" placeholder="Enter destination" required />
+
+      <label for="departure-time">Departure Time:</label>
+      <input type="datetime-local" id="departure-time" name="departure-time" required />
+
+      <button type="submit">Plan Route</button>
+    </form>
+
+    <section id="map-container">
+      <div id="map">Map loading...</div>
+    </section>
+
+    <section id="results" aria-live="polite">
+      <!-- Weather and route details will appear here -->
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
