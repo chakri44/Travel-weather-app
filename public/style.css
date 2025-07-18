@@ -1,20 +1,16 @@
-/* Reset some styles */
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+/* style.css */
 
 body {
+  margin: 0;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  line-height: 1.6;
   background-color: #f0f4f8;
-  padding: 1rem;
+  color: #333;
 }
 
 main {
-  max-width: 800px;
+  max-width: 900px;
   margin: 0 auto;
+  padding: 1rem;
 }
 
 header {
@@ -22,54 +18,54 @@ header {
   margin-bottom: 1.5rem;
 }
 
+h1 {
+  font-size: 2rem;
+  color: #0077cc;
+}
+
 form {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  background: white;
+  background: #ffffff;
   padding: 1rem;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  display: grid;
+  gap: 0.75rem;
 }
 
-form label {
-  font-weight: bold;
-}
-
-form input,
-form button {
-  padding: 0.5rem;
-  border: 1px solid #ccc;
+input,
+button {
+  padding: 0.6rem;
   border-radius: 6px;
+  border: 1px solid #ccc;
   font-size: 1rem;
 }
 
-form button {
+button {
   background-color: #0077cc;
   color: white;
   cursor: pointer;
-  transition: background-color 0.3s;
+  transition: background 0.3s ease;
 }
 
-form button:hover {
+button:hover {
   background-color: #005fa3;
 }
 
 #map-container {
-  margin-top: 1rem;
+  margin-top: 1.5rem;
+  height: 400px;
 }
 
 #map {
-  height: 400px;
   width: 100%;
-  border: 2px solid #ccc;
+  height: 100%;
   border-radius: 8px;
-  background: #e6e6e6;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
-/* Responsive layout */
-@media (max-width: 600px) {
-  form {
-    gap: 1rem;
-  }
+#results {
+  margin-top: 1rem;
+  background: #fff;
+  padding: 1rem;
+  border-radius: 8px;
 }
