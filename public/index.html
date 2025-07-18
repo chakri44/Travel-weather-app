@@ -3,51 +3,26 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Travel Weather Planner</title>
+  <title>Travel Route Mapper</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <link rel="stylesheet" href="style.css" />
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    integrity="sha256-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC0="
-    crossorigin=""
-  />
 </head>
 <body>
-  <form id="route-form">
-    <h2>Travel Planner</h2>
+  <h1>Travel Route Mapper</h1>
 
-    <!-- Address Search -->
-    <label for="origin-search">Origin Address:</label>
-    <input type="text" id="origin-search" placeholder="Enter origin address" />
-    <button type="button" id="origin-search-btn">Search Origin</button>
+  <div class="input-section">
+    <label for="origin">Origin:</label>
+    <input type="text" id="origin" placeholder="Click map or enter location" />
 
-    <label for="destination-search">Destination Address:</label>
-    <input type="text" id="destination-search" placeholder="Enter destination address" />
-    <button type="button" id="destination-search-btn">Search Destination</button>
+    <label for="destination">Destination:</label>
+    <input type="text" id="destination" placeholder="Click map or enter location" />
 
-    <!-- Coordinates Display -->
-    <label for="origin">Origin Coordinates:</label>
-    <input type="text" id="origin" placeholder="Click on map or search" readonly />
+    <button id="searchRoute">Get Route</button>
+  </div>
 
-    <label for="destination">Destination Coordinates:</label>
-    <input type="text" id="destination" placeholder="Click on map or search" readonly />
-
-    <!-- Departure Time -->
-    <label for="departure-time">Departure Time:</label>
-    <input type="datetime-local" id="departure-time" />
-
-    <button type="submit">Plan Trip</button>
-  </form>
-
-  <!-- Map Display -->
   <div id="map"></div>
 
-  <!-- Scripts -->
-  <script
-    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-    integrity="sha256-o9N1jRVvG2yP7hMb+0hIbVM3rGiRQtu8F3Adu9g4U2g="
-    crossorigin=""
-  ></script>
   <script src="app.js"></script>
 </body>
 </html>
