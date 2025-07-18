@@ -2,46 +2,52 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Travel Weather Planner</title>
   <link rel="stylesheet" href="style.css" />
-
-  <!-- Leaflet CSS -->
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC0="
+    crossorigin=""
   />
 </head>
 <body>
-  <main>
-    <header>
-      <h1>🌍 Travel Weather Planner</h1>
-    </header>
+  <form id="route-form">
+    <h2>Travel Planner</h2>
 
-    <form id="route-form" aria-label="Route planner form">
-      <label for="origin">From:</label>
-      <input type="text" id="origin" name="origin" placeholder="Enter starting location" required />
+    <!-- Address Search -->
+    <label for="origin-search">Origin Address:</label>
+    <input type="text" id="origin-search" placeholder="Enter origin address" />
+    <button type="button" id="origin-search-btn">Search Origin</button>
 
-      <label for="destination">To:</label>
-      <input type="text" id="destination" name="destination" placeholder="Enter destination" required />
+    <label for="destination-search">Destination Address:</label>
+    <input type="text" id="destination-search" placeholder="Enter destination address" />
+    <button type="button" id="destination-search-btn">Search Destination</button>
 
-      <label for="departure-time">Departure Time:</label>
-      <input type="datetime-local" id="departure-time" name="departure-time" required />
+    <!-- Coordinates Display -->
+    <label for="origin">Origin Coordinates:</label>
+    <input type="text" id="origin" placeholder="Click on map or search" readonly />
 
-      <button type="submit">Plan Route</button>
-    </form>
+    <label for="destination">Destination Coordinates:</label>
+    <input type="text" id="destination" placeholder="Click on map or search" readonly />
 
-    <section id="map-container">
-      <div id="map">Map loading...</div>
-    </section>
+    <!-- Departure Time -->
+    <label for="departure-time">Departure Time:</label>
+    <input type="datetime-local" id="departure-time" />
 
-    <section id="results" aria-live="polite">
-      <!-- Weather and route details will appear here -->
-    </section>
-  </main>
+    <button type="submit">Plan Trip</button>
+  </form>
 
-  <!-- Leaflet JS -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Map Display -->
+  <div id="map"></div>
+
+  <!-- Scripts -->
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-o9N1jRVvG2yP7hMb+0hIbVM3rGiRQtu8F3Adu9g4U2g="
+    crossorigin=""
+  ></script>
   <script src="app.js"></script>
 </body>
 </html>
