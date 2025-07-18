@@ -1,84 +1,100 @@
-// app.js
+// Initialize the map
+const map = L.map('map').setView([20.59, 78.96], 5); // Center of India
 
-// === 1. Map Initialization ===
-const map = L.map('map').setView([20.59, 78.96], 5); // India center
-
+// Add OpenStreetMap tile layer
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19,
   attribution: '© OpenStreetMap'
 }).addTo(map);
 
-// === 2. Click Map to Set Origin and Destination ===
 let clickCount = 0;
 let fromMarker, toMarker;
+let originCoords = null, destinationCoords = null;
 
+// Click-based point selection
 map.on('click', function (e) {
-  const { lat, lng } = e.latlng;
-  const formatted = `${lat.toFixed(5)},${lng.toFixed(5)}`;
-
   if (clickCount === 0) {
     if (fromMarker) map.removeLayer(fromMarker);
     fromMarker = L.marker(e.latlng, { title: 'Start' }).addTo(map);
-    document.getElementById('origin').value = formatted;
+    document.getElementById('origin').value = `${e.latlng.lat},${e.latlng.lng}`;
+    originCoords = e.latlng;
     clickCount = 1;
   } else {
     if (toMarker) map.removeLayer(toMarker);
     toMarker = L.marker(e.latlng, { title: 'Destination' }).addTo(map);
-    document.getElementById('destination').value = formatted;
+    document.getElementById('destination').value = `${e.latlng.lat},${e.latlng.lng}`;
+    destinationCoords = e.latlng;
     clickCount = 0;
   }
 });
 
-// === 3. Geocode Address (Step 3b) ===
-async function geocodeAddress(query, type) {
-  const response = await fetch(
-    `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`
-  );
+// Geocode address to lat/lng using Mapbox API
+async function geocodeLocation(text) {
+  const token = 'pk.eyJ1IjoiY2hha3JpNDQiLCJhIjoiY21kOGh4YzBwMDBlcTJucTFkYzRkYnNlbCJ9.gCsLJrdJOwTW8fEZYVjB8w';
+  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(text)}.json?access_token=${token}`;
+
+  const response = await fetch(url);
   const data = await response.json();
-  if (data && data.length > 0) {
-    const lat = parseFloat(data[0].lat);
-    const lon = parseFloat(data[0].lon);
-    const formatted = `${lat.toFixed(5)},${lon.toFixed(5)}`;
-
-    const marker = L.marker([lat, lon], {
-      title: type === 'origin' ? 'Start' : 'Destination',
-    }).addTo(map);
-
-    if (type === 'origin') {
-      if (fromMarker) map.removeLayer(fromMarker);
-      fromMarker = marker;
-      document.getElementById('origin').value = formatted;
-    } else {
-      if (toMarker) map.removeLayer(toMarker);
-      toMarker = marker;
-      document.getElementById('destination').value = formatted;
-    }
-
-    map.setView([lat, lon], 10);
+  if (data.features && data.features.length > 0) {
+    return {
+      lat: data.features[0].center[1],
+      lng: data.features[0].center[0],
+    };
   } else {
-    alert('Location not found. Try a different address.');
+    alert('Location not found!');
+    return null;
   }
 }
 
-// Handle address button clicks
-document.getElementById('origin-search-btn').addEventListener('click', () => {
-  const query = document.getElementById('origin-search').value;
-  geocodeAddress(query, 'origin');
-});
+// Get route between two points
+async function getRoute(start, end) {
+  const token = 'pk.eyJ1IjoiY2hha3JpNDQiLCJhIjoiY21kOGh4YzBwMDBlcTJucTFkYzRkYnNlbCJ9.gCsLJrdJOwTW8fEZYVjB8w';
+  const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${start.lng},${start.lat};${end.lng},${end.lat}?geometries=geojson&access_token=${token}`;
 
-document.getElementById('destination-search-btn').addEventListener('click', () => {
-  const query = document.getElementById('destination-search').value;
-  geocodeAddress(query, 'destination');
-});
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+    if (data.routes && data.routes.length > 0) {
+      return data.routes[0].geometry;
+    } else {
+      alert("No route found.");
+      return null;
+    }
+  } catch (err) {
+    console.error("Route fetch error:", err);
+    alert("Failed to fetch route.");
+    return null;
+  }
+}
 
-// === 4. Handle Route Form Submit (for later steps) ===
-document.getElementById('route-form').addEventListener('submit', (e) => {
-  e.preventDefault();
-  const origin = document.getElementById('origin').value;
-  const destination = document.getElementById('destination').value;
-  const departureTime = document.getElementById('departure-time').value;
+// When user clicks "Get Route"
+document.getElementById('searchRoute').addEventListener('click', async () => {
+  const originInput = document.getElementById('origin').value;
+  const destinationInput = document.getElementById('destination').value;
 
-  console.log('Form submitted:', { origin, destination, departureTime });
+  let from = originCoords;
+  let to = destinationCoords;
 
-  // Step 4: Route logic will be added here.
+  if (!from && originInput && !originInput.includes(',')) {
+    from = await geocodeLocation(originInput);
+  }
+  if (!to && destinationInput && !destinationInput.includes(',')) {
+    to = await geocodeLocation(destinationInput);
+  }
+
+  if (from && to) {
+    const geometry = await getRoute(from, to);
+    if (geometry) {
+      const routeLine = L.geoJSON(geometry, {
+        style: {
+          color: 'blue',
+          weight: 4
+        }
+      }).addTo(map);
+
+      map.fitBounds(routeLine.getBounds());
+    }
+  } else {
+    alert("Please provide both origin and destination.");
+  }
 });
