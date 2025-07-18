@@ -1,100 +1,172 @@
-// Initialize the map
-const map = L.map('map').setView([20.59, 78.96], 5); // Center of India
+let map;
+let mapboxToken = "";
+let isMapReady = false;
 
-// Add OpenStreetMap tile layer
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  maxZoom: 19,
-  attribution: '© OpenStreetMap'
-}).addTo(map);
+// Fetch token from backend and initialize map
+fetch('/api/token')
+  .then(res => res.json())
+  .then(data => {
+    mapboxToken = data.token;
+    mapboxgl.accessToken = mapboxToken;
 
-let clickCount = 0;
-let fromMarker, toMarker;
-let originCoords = null, destinationCoords = null;
+    map = new mapboxgl.Map({
+      container: 'map',
+      style: 'mapbox://styles/mapbox/streets-v11',
+      center: [78.9629, 20.5937], // Center on India
+      zoom: 4
+    });
 
-// Click-based point selection
-map.on('click', function (e) {
-  if (clickCount === 0) {
-    if (fromMarker) map.removeLayer(fromMarker);
-    fromMarker = L.marker(e.latlng, { title: 'Start' }).addTo(map);
-    document.getElementById('origin').value = `${e.latlng.lat},${e.latlng.lng}`;
-    originCoords = e.latlng;
-    clickCount = 1;
-  } else {
-    if (toMarker) map.removeLayer(toMarker);
-    toMarker = L.marker(e.latlng, { title: 'Destination' }).addTo(map);
-    document.getElementById('destination').value = `${e.latlng.lat},${e.latlng.lng}`;
-    destinationCoords = e.latlng;
-    clickCount = 0;
-  }
-});
+    map.on('load', () => {
+      isMapReady = true;
+      console.log("Map loaded and ready!");
+    });
+  })
+  .catch(err => {
+    console.error("Error loading Mapbox token:", err);
+    alert("Failed to load map. Try refreshing.");
+  });
 
-// Geocode address to lat/lng using Mapbox API
-async function geocodeLocation(text) {
-  const token = 'pk.eyJ1IjoiY2hha3JpNDQiLCJhIjoiY21kOGh4YzBwMDBlcTJucTFkYzRkYnNlbCJ9.gCsLJrdJOwTW8fEZYVjB8w';
-  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(text)}.json?access_token=${token}`;
-
-  const response = await fetch(url);
+// Fetch coordinates for a location
+async function getCoordinates(location) {
+  const response = await fetch(`/api/geocode?location=${encodeURIComponent(location)}`);
   const data = await response.json();
-  if (data.features && data.features.length > 0) {
-    return {
-      lat: data.features[0].center[1],
-      lng: data.features[0].center[0],
-    };
-  } else {
-    alert('Location not found!');
-    return null;
-  }
+  return [data.longitude, data.latitude];
 }
 
-// Get route between two points
+// Fetch route from Mapbox Directions API
 async function getRoute(start, end) {
-  const token = 'pk.eyJ1IjoiY2hha3JpNDQiLCJhIjoiY21kOGh4YzBwMDBlcTJucTFkYzRkYnNlbCJ9.gCsLJrdJOwTW8fEZYVjB8w';
-  const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${start.lng},${start.lat};${end.lng},${end.lat}?geometries=geojson&access_token=${token}`;
+  const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${start[0]},${start[1]};${end[0]},${end[1]}?steps=true&geometries=geojson&overview=full&access_token=${mapboxToken}`;
+  const response = await fetch(url);
+  const json = await response.json();
+
+  if (!json.routes || json.routes.length === 0) throw new Error("No route found.");
+
+  const route = json.routes[0];
+  const geometry = route.geometry;
+  const duration = route.duration; // in seconds
+
+  return { geometry, duration };
+}
+
+// Approximate distance between coordinates
+function totalDistanceKm(coords) {
+  let dist = 0;
+  for (let i = 1; i < coords.length; i++) {
+    dist += haversine(coords[i - 1], coords[i]);
+  }
+  return dist;
+}
+
+function haversine(coord1, coord2) {
+  const R = 6371; // Radius of Earth in km
+  const [lon1, lat1] = coord1;
+  const [lon2, lat2] = coord2;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat/2)**2 +
+            Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+            Math.sin(dLon/2)**2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+function toRad(deg) {
+  return deg * Math.PI / 180;
+}
+
+// Identify nearby city/town name
+async function getPlaceName(lon, lat) {
+  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lon},${lat}.json?types=place&access_token=${mapboxToken}`;
+  const res = await fetch(url);
+  const data = await res.json();
+  return data.features[0]?.place_name || "Unknown town";
+}
+
+// Handle form submit
+async function submitLocations(e) {
+  e.preventDefault();
+
+  if (!isMapReady) {
+    alert("Map is not ready yet. Please wait...");
+    return;
+  }
+
+  const from = document.getElementById("from").value;
+  const to = document.getElementById("to").value;
+
+  if (!from || !to) {
+    alert("Please enter both start and destination.");
+    return;
+  }
 
   try {
-    const response = await fetch(url);
-    const data = await response.json();
-    if (data.routes && data.routes.length > 0) {
-      return data.routes[0].geometry;
+    const fromCoords = await getCoordinates(from);
+    const toCoords = await getCoordinates(to);
+
+    // Add markers
+    new mapboxgl.Marker({ color: 'green' }).setLngLat(fromCoords).addTo(map);
+    new mapboxgl.Marker({ color: 'red' }).setLngLat(toCoords).addTo(map);
+
+    // Get route
+    const { geometry, duration } = await getRoute(fromCoords, toCoords);
+
+    // Fit map to route
+    const bounds = new mapboxgl.LngLatBounds();
+    geometry.coordinates.forEach(coord => bounds.extend(coord));
+    map.fitBounds(bounds, { padding: 60 });
+
+    // Draw route line
+    const route = {
+      type: 'Feature',
+      geometry: geometry
+    };
+
+    if (map.getSource('route')) {
+      map.getSource('route').setData(route);
     } else {
-      alert("No route found.");
-      return null;
+      map.addSource('route', {
+        type: 'geojson',
+        data: route
+      });
+
+      map.addLayer({
+        id: 'route',
+        type: 'line',
+        source: 'route',
+        layout: {
+          'line-join': 'round',
+          'line-cap': 'round'
+        },
+        paint: {
+          'line-color': '#007cbf',
+          'line-width': 5
+        }
+      });
     }
+
+    // City/Town Markers with ETA
+    const coords = geometry.coordinates;
+    const totalPoints = coords.length;
+    const step = Math.floor(totalPoints / 6); // pick ~6 towns
+    const now = new Date();
+
+    for (let i = step; i < coords.length; i += step) {
+      const [lon, lat] = coords[i];
+      const fraction = i / totalPoints;
+      const eta = new Date(now.getTime() + duration * 1000 * fraction);
+      const place = await getPlaceName(lon, lat);
+
+      new mapboxgl.Marker({ color: '#0066ff', scale: 0.5 })
+        .setLngLat([lon, lat])
+        .setPopup(new mapboxgl.Popup().setHTML(`<strong>${place}</strong><br>ETA: ${eta.toLocaleTimeString()}`))
+        .addTo(map);
+    }
+
+    // Clear instructions
+    document.getElementById("waypoints").innerHTML = "";
+
   } catch (err) {
-    console.error("Route fetch error:", err);
-    alert("Failed to fetch route.");
-    return null;
+    console.error("Route error:", err);
+    alert("Failed to get route. Try again.");
   }
 }
-
-// When user clicks "Get Route"
-document.getElementById('searchRoute').addEventListener('click', async () => {
-  const originInput = document.getElementById('origin').value;
-  const destinationInput = document.getElementById('destination').value;
-
-  let from = originCoords;
-  let to = destinationCoords;
-
-  if (!from && originInput && !originInput.includes(',')) {
-    from = await geocodeLocation(originInput);
-  }
-  if (!to && destinationInput && !destinationInput.includes(',')) {
-    to = await geocodeLocation(destinationInput);
-  }
-
-  if (from && to) {
-    const geometry = await getRoute(from, to);
-    if (geometry) {
-      const routeLine = L.geoJSON(geometry, {
-        style: {
-          color: 'blue',
-          weight: 4
-        }
-      }).addTo(map);
-
-      map.fitBounds(routeLine.getBounds());
-    }
-  } else {
-    alert("Please provide both origin and destination.");
-  }
-});
